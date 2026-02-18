@@ -5,6 +5,7 @@ import { v4 as uuidv4 } from 'uuid';
 
 export function ClaimManager() {
     const { state, addClaim, removeClaim, updateClaim } = useJournalistStore();
+    console.log('ClaimManager render, claims:', state.claims);
     const [isAdding, setIsAdding] = useState(false);
 
     // New Claim Form State

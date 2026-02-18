@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import type { AppState, Story, Claim, Source } from '../types';
 
 const STORAGE_KEY = 'journalist_app_v1';
@@ -9,7 +9,22 @@ const initialState: AppState = {
     sources: [],
 };
 
-export function useJournalistStore() {
+type JournalistContextType = {
+    state: AppState;
+    setStory: (story: Story) => void;
+    addClaim: (claim: Claim) => void;
+    updateClaim: (claim: Claim) => void;
+    removeClaim: (id: string) => void;
+    addSource: (source: Source) => void;
+    updateSource: (source: Source) => void;
+    removeSource: (id: string) => void;
+    resetStory: () => void;
+    loadTestData: (testData: AppState) => void;
+};
+
+const JournalistContext = createContext<JournalistContextType | undefined>(undefined);
+
+export function JournalistProvider({ children }: { children: ReactNode }) {
     const [state, setState] = useState<AppState>(() => {
         const stored = localStorage.getItem(STORAGE_KEY);
         return stored ? JSON.parse(stored) : initialState;
@@ -63,15 +78,34 @@ export function useJournalistStore() {
         setState(initialState);
     };
 
-    return {
-        state,
-        setStory,
-        addClaim,
-        updateClaim,
-        removeClaim,
-        addSource,
-        updateSource,
-        removeSource,
-        resetStory
+    const loadTestData = (testData: AppState) => {
+        // console.log('loadTestData called with:', testData);
+        setState(testData);
     };
+
+    return (
+        <JournalistContext.Provider value= {{
+        state,
+            setStory,
+            addClaim,
+            updateClaim,
+            removeClaim,
+            addSource,
+            updateSource,
+            removeSource,
+            resetStory,
+            loadTestData
+    }
+}>
+    { children }
+    </JournalistContext.Provider>
+    );
+}
+
+export function useJournalistStore() {
+    const context = useContext(JournalistContext);
+    if (context === undefined) {
+        throw new Error('useJournalistStore must be used within a JournalistProvider');
+    }
+    return context;
 }
