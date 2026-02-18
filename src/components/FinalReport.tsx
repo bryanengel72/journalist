@@ -24,6 +24,59 @@ export function FinalReport() {
         ? Math.round((state.claims.filter(c => c.status === 'Verified').length / state.claims.length) * 100)
         : 0;
 
+    const generateReport = () => {
+        if (!state.currentStory) return;
+
+        const date = new Date().toISOString().split('T')[0];
+        const reportContent = `
+# Verification Report: ${state.currentStory.title}
+Date: ${date}
+Status: ${allChecked ? 'READY FOR PUBLICATION' : 'CHECKS INCOMPLETE'}
+
+## Story Details
+Summary: ${state.currentStory.summary}
+Deadline: ${state.currentStory.deadline}
+Sensitivity: ${state.currentStory.sensitivity}
+
+## Verification Statistics
+- Total Claims: ${state.claims.length}
+- Verified Rate: ${verificationRate}%
+- Open Critical Issues: ${state.claims.filter(c => c.priority === 'Critical' && c.status !== 'Verified').length}
+
+## Claims Analysis
+${state.claims.map(c => `
+- [${c.status.toUpperCase()}] ${c.text}
+  Priority: ${c.priority}
+  Type: ${c.type}
+  Source: ${c.source}
+  Notes: ${c.notes}
+`).join('')}
+
+## Source Evaluation
+${state.sources.map(s => `
+- ${s.name} (${s.type})
+  Credibility: ${s.assessment}
+  Corroborated: ${s.corroborated}
+  Notes: ${s.notes}
+`).join('')}
+
+## Pre-Publication Checklist
+${Object.entries(checklistLabels).map(([key, label]) => `
+- [${checklist[key as keyof typeof checklist] ? 'x' : ' '}] ${label}
+`).join('')}
+        `.trim();
+
+        const blob = new Blob([reportContent], { type: 'text/markdown' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `verification-report-${state.currentStory.id.substring(0, 8)}.md`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    };
+
     return (
         <div>
             <div style={{ marginBottom: '2rem' }}>
@@ -99,10 +152,15 @@ export function FinalReport() {
                         </div>
 
                         <p style={{ fontSize: '0.875rem', color: 'var(--color-text-secondary)', marginBottom: '1rem' }}>
-                            Ensure all unchecked items are addressed. If a check is impossible, document the reason in your notes.
+                            Ensure all items are checked before generating the report.
                         </p>
 
-                        <button className="btn btn-primary" style={{ width: '100%' }} disabled={!allChecked}>
+                        <button
+                            className="btn btn-primary"
+                            style={{ width: '100%' }}
+                            disabled={!allChecked}
+                            onClick={generateReport}
+                        >
                             Generate Final Report
                         </button>
                     </div>
