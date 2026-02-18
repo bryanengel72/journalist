@@ -158,10 +158,9 @@ ${Object.entries(checklistLabels).map(([key, label]) => `
                         <button
                             className="btn btn-primary"
                             style={{ width: '100%' }}
-                            disabled={!allChecked}
                             onClick={generateReport}
                         >
-                            Generate Final Report
+                            {allChecked ? 'Generate Final Report' : 'Generate Draft Report'}
                         </button>
                     </div>
                 </div>
