@@ -12,6 +12,8 @@ export function StoryIntake({ onComplete }: StoryIntakeProps) {
     const { setStory, addClaim, addSource } = useJournalistStore();
     const [storyId] = useState(uuidv4()); // Generate ID safely
     const [rawText, setRawText] = useState('');
+    const [url, setUrl] = useState('');
+    const [isFetching, setIsFetching] = useState(false);
     const [extractedData, setExtractedData] = useState<{ claims: Claim[], sources: Source[] } | null>(null);
 
     const [formData, setFormData] = useState({
@@ -21,18 +23,56 @@ export function StoryIntake({ onComplete }: StoryIntakeProps) {
         sensitivity: 'Standard' as Story['sensitivity'],
     });
 
-    const handleAnalyze = () => {
-        if (!rawText.trim()) return;
-        const result = analyzeText(rawText, storyId);
+    const handleAnalyze = (textToAnalyze: string = rawText) => {
+        if (!textToAnalyze.trim()) return;
+        const result = analyzeText(textToAnalyze, storyId);
         setFormData(prev => ({
             ...prev,
-            title: result.title,
-            summary: result.summary
+            title: result.title || prev.title,
+            summary: result.summary || prev.summary
         }));
         setExtractedData({
             claims: result.claims,
             sources: result.sources
         });
+    };
+
+    const handleFetchUrl = async () => {
+        if (!url.trim()) return;
+        setIsFetching(true);
+        try {
+            // Use allorigins to bypass CORS for client-side fetching
+            const response = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(url)}`);
+            const data = await response.json();
+
+            if (data.contents) {
+                const doc = new DOMParser().parseFromString(data.contents, "text/html");
+
+                // Attempt to grab the title
+                // @ts-ignore
+                const pageTitle = doc.querySelector('title')?.innerText || '';
+                // @ts-ignore
+                const h1 = doc.querySelector('h1')?.innerText || '';
+                const finalTitle = h1 || pageTitle;
+
+                // Extract text from paragraphs to avoid navigation menus and footers
+                const paragraphs = Array.from(doc.querySelectorAll('p, article'))
+                    .map(p => p.textContent)
+                    .filter(text => text && text.trim().length > 40) // content filter
+                    .join('\n\n');
+
+                if (finalTitle) {
+                    setFormData(prev => ({ ...prev, title: finalTitle }));
+                }
+                setRawText(paragraphs);
+                handleAnalyze(paragraphs);
+            }
+        } catch (error) {
+            console.error("Failed to fetch URL:", error);
+            alert("Could not fetch content from this URL. Please try pasting the text instead.");
+        } finally {
+            setIsFetching(false);
+        }
     };
 
     const handleSubmit = (e: React.FormEvent) => {
@@ -61,11 +101,36 @@ export function StoryIntake({ onComplete }: StoryIntakeProps) {
             </h2>
 
             {/* Automation Section */}
+            {/* Automation Section */}
             <div style={{ marginBottom: '2rem', padding: '1rem', backgroundColor: 'var(--color-bg-secondary)', borderRadius: 'var(--radius-md)' }}>
                 <h4 style={{ marginTop: 0 }}>⚡️ Quick Start / Auto-Fill</h4>
-                <p style={{ fontSize: '0.875rem', color: 'var(--color-text-secondary)', marginBottom: '0.5rem' }}>
-                    Paste your article draft, notes, or source text here to automatically extract claims, sources, and summary.
+                <p style={{ fontSize: '0.875rem', color: 'var(--color-text-secondary)', marginBottom: '1rem' }}>
+                    Paste a URL or article text to automatically extract claims, sources, and summary.
                 </p>
+
+                <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
+                    <input
+                        className="form-input"
+                        type="url"
+                        placeholder="https://example.com/news-story"
+                        value={url}
+                        onChange={(e) => setUrl(e.target.value)}
+                        style={{ flex: 1 }}
+                    />
+                    <button
+                        type="button"
+                        onClick={handleFetchUrl}
+                        className="btn btn-secondary"
+                        disabled={!url.trim() || isFetching}
+                    >
+                        {isFetching ? 'Fetching...' : 'Fetch URL'}
+                    </button>
+                </div>
+
+                <div style={{ textAlign: 'center', marginBottom: '1rem', color: 'var(--color-text-secondary)', fontSize: '0.8rem' }}>
+                    &mdash; OR PASTE TEXT &mdash;
+                </div>
+
                 <textarea
                     className="form-textarea"
                     rows={4}
@@ -76,11 +141,11 @@ export function StoryIntake({ onComplete }: StoryIntakeProps) {
                 />
                 <button
                     type="button"
-                    onClick={handleAnalyze}
+                    onClick={() => handleAnalyze(rawText)}
                     className="btn btn-secondary"
                     disabled={!rawText.trim()}
                 >
-                    Auto-Extract Data
+                    Analyze Text
                 </button>
                 {extractedData && (
                     <span style={{ marginLeft: '1rem', fontSize: '0.85rem', color: 'var(--color-success)' }}>
