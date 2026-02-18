@@ -1,4 +1,5 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect } from 'react';
+import type { ReactNode } from 'react';
 import type { AppState, Story, Claim, Source } from '../types';
 
 const STORAGE_KEY = 'journalist_app_v1';
@@ -84,8 +85,8 @@ export function JournalistProvider({ children }: { children: ReactNode }) {
     };
 
     return (
-        <JournalistContext.Provider value= {{
-        state,
+        <JournalistContext.Provider value={{
+            state,
             setStory,
             addClaim,
             updateClaim,
@@ -95,10 +96,10 @@ export function JournalistProvider({ children }: { children: ReactNode }) {
             removeSource,
             resetStory,
             loadTestData
-    }
-}>
-    { children }
-    </JournalistContext.Provider>
+        }
+        }>
+            {children}
+        </JournalistContext.Provider>
     );
 }
 

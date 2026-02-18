@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useJournalistStore } from '../hooks/useJournalistStore';
-import type { Claim, VerificationLog, ClaimStatus } from '../types';
+import type { Claim, VerificationLog } from '../types';
 import { v4 as uuidv4 } from 'uuid';
 
 export function FactCheckLog() {
